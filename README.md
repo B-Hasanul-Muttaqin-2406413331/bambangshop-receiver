@@ -59,14 +59,14 @@ You can install Postman via this website: https://www.postman.com/downloads/
     -   Open another new terminal, edit `ROCKET_PORT` in `.env` to `8003`, then execute `cargo run`.
 
 ## Mandatory Checklists (Subscriber)
--   [ ] Clone https://gitlab.com/ichlaffterlalu/bambangshop-receiver to a new repository.
+-   [x] Clone https://gitlab.com/ichlaffterlalu/bambangshop-receiver to a new repository.
 -   **STAGE 1: Implement models and repositories**
-    -   [ ] Commit: `Create Notification model struct.`
-    -   [ ] Commit: `Create SubscriberRequest model struct.`
-    -   [ ] Commit: `Create Notification database and Notification repository struct skeleton.`
-    -   [ ] Commit: `Implement add function in Notification repository.`
-    -   [ ] Commit: `Implement list_all_as_string function in Notification repository.`
-    -   [ ] Write answers of your learning module's "Reflection Subscriber-1" questions in this README.
+    -   [x] Commit: `Create Notification model struct.`
+    -   [x] Commit: `Create SubscriberRequest model struct.`
+    -   [x] Commit: `Create Notification database and Notification repository struct skeleton.`
+    -   [x] Commit: `Implement add function in Notification repository.`
+    -   [x] Commit: `Implement list_all_as_string function in Notification repository.`
+    -   [x] Write answers of your learning module's "Reflection Subscriber-1" questions in this README.
 -   **STAGE 3: Implement services and controllers**
     -   [ ] Commit: `Create Notification service struct skeleton.`
     -   [ ] Commit: `Implement subscribe function in Notification service.`
@@ -85,5 +85,9 @@ This is the place for you to write reflections:
 ### Mandatory (Subscriber) Reflections
 
 #### Reflection Subscriber-1
+
+1. We use `RwLock<Vec<Notification>>` because the notifications list is shared global state that can be accessed by multiple Rocket request handlers at the same time. When a new notification arrives, the application needs write access to push a new item into the `Vec`. When the user asks for the notification list, the application only needs read access to iterate over the existing items and format them. `RwLock` is a good fit here because it allows many readers to access the same data concurrently as long as no writer is active, while still guaranteeing exclusive access for writes. This matches the Receiver app's access pattern: reads can happen often, and writes are relatively small append operations. We do not use `Mutex` here because `Mutex` would also work for correctness, but it is more restrictive: even read-only operations would block each other since only one thread can hold the lock at a time. In other words, `RwLock` gives us the same safety with better concurrency for this read-heavy use case.
+
+2. Rust does not allow us to freely mutate ordinary `static` variables the way Java can mutate static fields through static methods because Rust treats unsynchronized global mutation as unsafe. A mutable global can be accessed from many threads, and that easily creates data races, which Rust prevents at compile time. For that reason, Rust requires shared mutable state to use explicit interior mutability and synchronization primitives such as `RwLock`, `Mutex`, or thread-safe containers like `DashMap`. The `lazy_static` crate helps because it lets us initialize complex global values at runtime while still exposing them as safe static references. So the difference is that Java permits mutation and relies more on runtime discipline, while Rust forces us to make thread safety explicit in the type system before global data can be mutated.
 
 #### Reflection Subscriber-2
