@@ -68,16 +68,16 @@ You can install Postman via this website: https://www.postman.com/downloads/
     -   [x] Commit: `Implement list_all_as_string function in Notification repository.`
     -   [x] Write answers of your learning module's "Reflection Subscriber-1" questions in this README.
 -   **STAGE 3: Implement services and controllers**
-    -   [ ] Commit: `Create Notification service struct skeleton.`
-    -   [ ] Commit: `Implement subscribe function in Notification service.`
-    -   [ ] Commit: `Implement subscribe function in Notification controller.`
-    -   [ ] Commit: `Implement unsubscribe function in Notification service.`
-    -   [ ] Commit: `Implement unsubscribe function in Notification controller.`
-    -   [ ] Commit: `Implement receive_notification function in Notification service.`
-    -   [ ] Commit: `Implement receive function in Notification controller.`
-    -   [ ] Commit: `Implement list_messages function in Notification service.`
-    -   [ ] Commit: `Implement list function in Notification controller.`
-    -   [ ] Write answers of your learning module's "Reflection Subscriber-2" questions in this README.
+    -   [x] Commit: `Create Notification service struct skeleton.`
+    -   [x] Commit: `Implement subscribe function in Notification service.`
+    -   [x] Commit: `Implement subscribe function in Notification controller.`
+    -   [x] Commit: `Implement unsubscribe function in Notification service.`
+    -   [x] Commit: `Implement unsubscribe function in Notification controller.`
+    -   [x] Commit: `Implement receive_notification function in Notification service.`
+    -   [x] Commit: `Implement receive function in Notification controller.`
+    -   [x] Commit: `Implement list_messages function in Notification service.`
+    -   [x] Commit: `Implement list function in Notification controller.`
+    -   [x] Write answers of your learning module's "Reflection Subscriber-2" questions in this README.
 
 ## Your Reflections
 This is the place for you to write reflections:
@@ -91,3 +91,9 @@ This is the place for you to write reflections:
 2. Rust does not allow us to freely mutate ordinary `static` variables the way Java can mutate static fields through static methods because Rust treats unsynchronized global mutation as unsafe. A mutable global can be accessed from many threads, and that easily creates data races, which Rust prevents at compile time. For that reason, Rust requires shared mutable state to use explicit interior mutability and synchronization primitives such as `RwLock`, `Mutex`, or thread-safe containers like `DashMap`. The `lazy_static` crate helps because it lets us initialize complex global values at runtime while still exposing them as safe static references. So the difference is that Java permits mutation and relies more on runtime discipline, while Rust forces us to make thread safety explicit in the type system before global data can be mutated.
 
 #### Reflection Subscriber-2
+
+1. Yes, I explored code outside the step-by-step tutorial, especially `src/lib.rs` in both the Receiver and Publisher apps. From the Receiver side, I learned that `src/lib.rs` is responsible for shared application configuration and helper types, not just startup boilerplate. The `AppConfig` struct is built with `dotenvy` and Rocket Figment, which means values such as `APP_INSTANCE_ROOT_URL`, `APP_PUBLISHER_ROOT_URL`, and `APP_INSTANCE_NAME` can be injected from environment variables without hardcoding them in the service layer. I also learned why `lazy_static` is used for `REQWEST_CLIENT` and `APP_CONFIG`: both are shared across requests and should only be initialized once. That exploration was useful during testing because it made it clear why we could run three Receiver instances by changing per-process environment variables and why the notification service could read the correct instance URL and name automatically.
+
+2. After finishing the tutorial and testing with multiple Receiver instances on ports `8001`, `8002`, and `8003`, I found that the Observer pattern makes adding more subscribers quite easy. A new Receiver does not require changes to the Publisher's core product logic, it only needs to expose the same notification endpoint and register itself through subscribe. The Publisher then treats every subscriber uniformly and sends notifications to each registered endpoint. This loose coupling is the main advantage: the Publisher only knows that a subscriber can receive updates, not how many instances exist or how each one presents the messages. However, adding more than one Main app instance would not be as easy in the current design. The current Publisher stores subscriber data in local in-memory state, so if we spawn multiple Main instances, each one would have its own separate subscriber list and product state. That means a Receiver subscribed to one Main instance would not automatically be known by the others. To support multiple Main instances cleanly, we would need an external shared database, message broker, or another synchronization mechanism so the publishers share the same subscription and product event state.
+
+3. I did not build a full automated Rust test suite for this tutorial, but I did perform my own manual smoke tests and lightweight Postman adjustments. I reused the imported Postman collection, duplicated the Receiver requests for ports `8002` and `8003`, and then manually tested the full flow: subscribe, create product, publish product, delete product, inspect notification messages, and unsubscribe one Receiver to verify that only the remaining subscribers received later notifications. I also created a small `test/subscribe-unsubscribe` branch in both repositories to keep that verification work isolated from the main feature branches. Even though this was not a full formal test suite, it was still very useful. For future group projects, Postman collections with clearer organization, variables, and a few automated assertions would be very helpful because they make endpoint behavior easier to demonstrate, easier to re-check after changes, and easier for teammates to understand without reading all of the backend code first.
